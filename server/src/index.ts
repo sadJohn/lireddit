@@ -5,12 +5,14 @@ import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
-import redis from "redis";
+import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
+import { senEmail } from "./utils/sendEmail";
 
 const main = async () => {
+  senEmail("bob@bob.com", "hello there");
   const orm = await createConnection({
     type: "postgres",
     host: "localhost",
@@ -26,12 +28,12 @@ const main = async () => {
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient();
+  const redis = new Redis();
   app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
   app.use(
     session({
       name: "qid",
-      store: new RedisStore({ client: redisClient, disableTTL: true }),
+      store: new RedisStore({ client: redis, disableTTL: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
@@ -52,6 +54,7 @@ const main = async () => {
       manager: orm.manager,
       req,
       res,
+      redis,
     }),
   });
 

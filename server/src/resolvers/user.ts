@@ -1,4 +1,4 @@
-import { MyContext } from "src/types";
+import { MyContext } from "../types";
 import {
   Arg,
   Ctx,
@@ -11,6 +11,9 @@ import {
 } from "type-graphql";
 import argon2 from "argon2";
 import { User } from "../entities/User";
+import { senEmail } from "../utils/sendEmail";
+import { v4 } from "uuid";
+import { FORGET_PASSWORD_PREFIX } from "../constants";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
 
@@ -46,6 +49,84 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() { manager, redis, req }: MyContext
+  ): Promise<UserResponse> {
+    if (newPassword.length <= 2) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "newPassword too short!",
+          },
+        ],
+      };
+    }
+    const key = FORGET_PASSWORD_PREFIX + token;
+    const userId = await redis.get(FORGET_PASSWORD_PREFIX + token);
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "token expired",
+          },
+        ],
+      };
+    }
+
+    const user = await manager.findOne(User, { id: userId });
+
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "user nolonger exists",
+          },
+        ],
+      };
+    }
+    user.password = await argon2.hash(newPassword);
+    await manager.save(user);
+
+    await redis.del(key);
+
+    //login after reset pwd
+    req.session.userId = user.id;
+
+    return { user };
+  }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg("email") email: string,
+    @Ctx() { manager, redis }: MyContext
+  ) {
+    const user = await manager.findOne(User, { email });
+    if (!user) {
+      return true;
+    }
+
+    const token = v4();
+
+    await redis.set(
+      FORGET_PASSWORD_PREFIX + token,
+      user.id,
+      "ex",
+      1000 * 60 * 60 * 24 * 3
+    );
+
+    await senEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
+    return true;
+  }
+
   @Query(() => User, { nullable: true })
   async me(@Ctx() { manager, req }: MyContext): Promise<User | undefined> {
     const user = await manager.findOne(User, { id: req.session.userId });
