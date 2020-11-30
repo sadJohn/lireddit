@@ -6,7 +6,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   BaseEntity,
+  OneToMany,
 } from "typeorm";
+import { Post } from "./Post";
 
 @ObjectType()
 @Entity()
@@ -14,14 +16,6 @@ export class User extends BaseEntity {
   @Field()
   @PrimaryGeneratedColumn("uuid")
   id: string;
-
-  @Field()
-  @CreateDateColumn({ type: "timestamp" })
-  createdAt: Date;
-
-  @Field()
-  @UpdateDateColumn({ type: "timestamp" })
-  updatedAt: Date;
 
   @Field()
   @Column("text", { unique: true })
@@ -33,4 +27,15 @@ export class User extends BaseEntity {
 
   @Column("text")
   password: string;
+
+  @OneToMany(() => Post, post => post.creator)
+  posts: Post[];
+
+  @Field()
+  @CreateDateColumn({ type: "timestamp" })
+  createdAt: Date;
+
+  @Field()
+  @UpdateDateColumn({ type: "timestamp" })
+  updatedAt: Date;
 }

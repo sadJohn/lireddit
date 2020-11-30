@@ -1,4 +1,4 @@
-import { GetServerSideProps, NextPage } from "next";
+import { NextPage } from "next";
 import { Box, Button } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
 import React, { useState } from "react";
@@ -9,7 +9,7 @@ import { useChangePasswordMutation } from "../../generated/graphql";
 import { useRouter } from "next/dist/client/router";
 import withApollo from "../../utils/withApollo";
 
-const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
+const ChangePassword: NextPage<{ token: string }> = () => {
   const router = useRouter();
   const [changePassword] = useChangePasswordMutation();
   const [tokenError, setTokenError] = useState("");
@@ -18,13 +18,19 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
       <Formik
         initialValues={{ newPassword: "", comfirm: "" }}
         onSubmit={async ({ newPassword, comfirm }, { setErrors }) => {
-            console.log(newPassword, comfirm)
+          console.log(newPassword, comfirm);
           if (newPassword !== comfirm) {
             setErrors({ comfirm: "password does not match!" });
             return;
           }
           const response = await changePassword({
-            variables: { newPassword, token },
+            variables: {
+              newPassword,
+              token:
+                typeof router.query.token === "string"
+                  ? router.query.token
+                  : "",
+            },
           });
           if (response.data?.changePassword.errors) {
             const errorMap = toErrorMap(response.data.changePassword.errors);
@@ -67,14 +73,6 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
       </Formik>
     </Wrapper>
   );
-};
-
-export const getServerSideProps: GetServerSideProps = async ({ query }) => {
-  return {
-    props: {
-      token: query.token,
-    },
-  };
 };
 
 export default withApollo(ChangePassword);

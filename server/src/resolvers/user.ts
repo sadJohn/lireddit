@@ -14,10 +14,9 @@ import { User } from "../entities/User";
 import { senEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
 import { FORGET_PASSWORD_PREFIX, EMAIL_REGEX, COOKIE_NAME } from "../constants";
-import { BaseEntity } from "typeorm";
 
 @InputType()
-class UserInfoInput extends BaseEntity {
+class UserInfoInput {
   @Field()
   username: string;
 
