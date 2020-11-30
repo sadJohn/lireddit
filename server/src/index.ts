@@ -10,9 +10,10 @@ import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
 import { COOKIE_NAME } from "./constants";
+import path from "path";
 
 const main = async () => {
-  await createConnection({
+  const conn = await createConnection({
     type: "postgres",
     host: "localhost",
     port: 5432,
@@ -20,9 +21,11 @@ const main = async () => {
     password: "postgres",
     database: "lireddit",
     entities: ["dist/entities/**/*.js"],
+    migrations: [path.join(__dirname, "./migrations/*")],
     synchronize: true,
     logging: false,
   });
+  await conn.runMigrations()
 
   const app = express();
 
