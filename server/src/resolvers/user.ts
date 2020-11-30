@@ -12,10 +12,15 @@ import {
 import argon2 from "argon2";
 import { User } from "../entities/User";
 
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+
 @InputType()
 class UserInfoInput {
   @Field()
   username: string;
+
+  @Field()
+  email: string;
 
   @Field()
   password: string;
@@ -49,7 +54,7 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async register(
-    @Arg("options") { username, password }: UserInfoInput,
+    @Arg("options") { username, password, email }: UserInfoInput,
     @Ctx() { manager, req }: MyContext
   ): Promise<UserResponse> {
     if (username.length <= 2) {
@@ -58,6 +63,16 @@ export class UserResolver {
           {
             field: "username",
             message: "username too short!",
+          },
+        ],
+      };
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      return {
+        errors: [
+          {
+            field: "email",
+            message: "invalid email!",
           },
         ],
       };
@@ -74,18 +89,24 @@ export class UserResolver {
     }
     const hashedPassword = await argon2.hash(password);
     const user = manager.create(User, {
-      username: username,
+      username,
+      email,
       password: hashedPassword,
     });
     try {
       await manager.save(user);
     } catch (err) {
       if (err.code === "23505") {
+        let fieldName = "username";
+        const errDetail = err.detail.match(/\(([^)]*)\)/);
+        if (errDetail) {
+          fieldName = errDetail[1];
+        }
         return {
           errors: [
             {
-              field: "username",
-              message: "user exist!",
+              field: fieldName,
+              message: `${fieldName} exist!`,
             },
           ],
         };
@@ -97,15 +118,18 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg("options") { username, password }: UserInfoInput,
+    @Arg("usernameOrEmail") usernameOrEmail: string,
+    @Arg("password") password: string,
     @Ctx() { manager, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await manager.findOne(User, { username });
+    const userField = EMAIL_REGEX.test(usernameOrEmail) ? "email" : "username";
+    const user = await manager.findOne(User, { [userField]: usernameOrEmail });
+    console.log("user", user);
     if (!user) {
       return {
         errors: [
           {
-            field: "username",
+            field: "usernameOrEmail",
             message: "user not exist!",
           },
         ],
