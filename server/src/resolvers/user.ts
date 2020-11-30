@@ -14,11 +14,12 @@ import { User } from "../entities/User";
 import { senEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
 import { FORGET_PASSWORD_PREFIX } from "../constants";
+import { BaseEntity } from "typeorm";
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
 
 @InputType()
-class UserInfoInput {
+class UserInfoInput extends BaseEntity {
   @Field()
   username: string;
 
@@ -53,7 +54,7 @@ export class UserResolver {
   async changePassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { manager, redis, req }: MyContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 2) {
       return {
@@ -78,7 +79,7 @@ export class UserResolver {
       };
     }
 
-    const user = await manager.findOne(User, { id: userId });
+    const user = await User.findOne(userId);
 
     if (!user) {
       return {
@@ -90,8 +91,10 @@ export class UserResolver {
         ],
       };
     }
-    user.password = await argon2.hash(newPassword);
-    await manager.save(user);
+    await User.update(
+      { id: userId },
+      { password: await argon2.hash(newPassword) }
+    );
 
     await redis.del(key);
 
@@ -104,9 +107,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { manager, redis }: MyContext
+    @Ctx() { redis }: MyContext
   ) {
-    const user = await manager.findOne(User, { email });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return true;
     }
@@ -128,15 +131,14 @@ export class UserResolver {
   }
 
   @Query(() => User, { nullable: true })
-  async me(@Ctx() { manager, req }: MyContext): Promise<User | undefined> {
-    const user = await manager.findOne(User, { id: req.session.userId });
-    return user;
+  me(@Ctx() { req }: MyContext): Promise<User | undefined> {
+    return User.findOne(req.session.userId);
   }
 
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") { username, password, email }: UserInfoInput,
-    @Ctx() { manager, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     if (username.length <= 2) {
       return {
@@ -169,13 +171,13 @@ export class UserResolver {
       };
     }
     const hashedPassword = await argon2.hash(password);
-    const user = manager.create(User, {
-      username,
-      email,
-      password: hashedPassword,
-    });
+    let user;
     try {
-      await manager.save(user);
+      user = await User.create({
+        username,
+        email,
+        password: hashedPassword,
+      }).save();
     } catch (err) {
       if (err.code === "23505") {
         let fieldName = "username";
@@ -193,7 +195,7 @@ export class UserResolver {
         };
       }
     }
-    req.session.userId = user.id;
+    req.session.userId = (user as User).id;
     return { user };
   }
 
@@ -201,11 +203,12 @@ export class UserResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { manager, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const userField = EMAIL_REGEX.test(usernameOrEmail) ? "email" : "username";
-    const user = await manager.findOne(User, { [userField]: usernameOrEmail });
-    console.log("user", user);
+    const user = await User.findOne({
+      where: { [userField]: usernameOrEmail },
+    });
     if (!user) {
       return {
         errors: [
@@ -236,7 +239,6 @@ export class UserResolver {
     return new Promise(resolve =>
       req.session.destroy(err => {
         if (err) {
-          console.log(err);
           resolve(false);
           return;
         }

@@ -51,7 +51,6 @@ const main = async () => {
       validate: false,
     }),
     context: ({ req, res }) => ({
-      manager: orm.manager,
       req,
       res,
       redis,
