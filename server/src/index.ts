@@ -9,11 +9,10 @@ import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
-import { senEmail } from "./utils/sendEmail";
+import { COOKIE_NAME } from "./constants";
 
 const main = async () => {
-  senEmail("bob@bob.com", "hello there");
-  const orm = await createConnection({
+  await createConnection({
     type: "postgres",
     host: "localhost",
     port: 5432,
@@ -32,7 +31,7 @@ const main = async () => {
   app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
   app.use(
     session({
-      name: "qid",
+      name: COOKIE_NAME,
       store: new RedisStore({ client: redis, disableTTL: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,

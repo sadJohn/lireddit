@@ -13,10 +13,8 @@ import argon2 from "argon2";
 import { User } from "../entities/User";
 import { senEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
-import { FORGET_PASSWORD_PREFIX } from "../constants";
+import { FORGET_PASSWORD_PREFIX, EMAIL_REGEX, COOKIE_NAME } from "../constants";
 import { BaseEntity } from "typeorm";
-
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
 
 @InputType()
 class UserInfoInput extends BaseEntity {
@@ -242,7 +240,7 @@ export class UserResolver {
           resolve(false);
           return;
         }
-        res.clearCookie("qid");
+        res.clearCookie(COOKIE_NAME);
         resolve(true);
       })
     );
