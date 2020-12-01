@@ -12,13 +12,46 @@ import {
 } from "@chakra-ui/react";
 import { Layout } from "../components/Layout";
 import NextLink from "next/link";
+import { ReactElement } from "react";
 
 const Index = () => {
-  const { data, loading } = usePostsQuery({
+  const { data, loading, fetchMore } = usePostsQuery({
     variables: {
       limit: 10,
     },
   });
+
+  let bottom: ReactElement | null;
+  if (!data) {
+    bottom = null;
+  } else if (!data.posts.hasMore) {
+    bottom = (
+      <Flex>
+        <Box m="auto" my={8}>
+          no more posts
+        </Box>
+      </Flex>
+    );
+  } else {
+    bottom = (
+      <Flex>
+        <Button
+          m="auto"
+          my={8}
+          onClick={() =>
+            fetchMore({
+              variables: {
+                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
+                limit: 10,
+              },
+            })
+          }
+        >
+          load more
+        </Button>
+      </Flex>
+    );
+  }
   if (!loading && !data) {
     return <Box>you got query failed for some reason</Box>;
   }
@@ -31,11 +64,11 @@ const Index = () => {
         </NextLink>
       </Flex>
       <br />
-      {!data?.posts && loading ? (
-        <div>loading</div>
+      {!data?.posts.posts && loading ? (
+        <Box>loading</Box>
       ) : (
         <Stack spacing={8}>
-          {data?.posts.map(post => (
+          {data?.posts.posts.map(post => (
             <Box key={post.id} p={5} shadow="md" borderWidth="1px">
               <Heading fontSize="xl">{post.title}</Heading>
               <Text mt={4}>{post.textSnippet}</Text>
@@ -43,13 +76,7 @@ const Index = () => {
           ))}
         </Stack>
       )}
-      {data && (
-        <Flex>
-          <Button m="auto" my={8}>
-            load more
-          </Button>
-        </Flex>
-      )}
+      {bottom}
     </Layout>
   );
 };
