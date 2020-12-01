@@ -13,7 +13,11 @@ interface createPostProps {}
 const CreatePost: React.FC<createPostProps> = ({}) => {
   useIsAuth();
   const router = useRouter();
-  const [createPost] = useCreatePostMutation();
+  const [createPost] = useCreatePostMutation({
+    update: cache => {
+      cache.evict({ fieldName: "posts" });
+    },
+  });
   return (
     <Layout variant="small">
       <Formik
