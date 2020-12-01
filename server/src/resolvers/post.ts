@@ -13,9 +13,10 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { MyContext } from "src/types";
+import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
+import { Updoot } from "../entities/Updoot";
 
 @InputType()
 class PostInput {
@@ -37,6 +38,25 @@ class PaginatedPosts {
 
 @Resolver(Post)
 export class PostResolver {
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg("postId") postId: string,
+    @Arg("value", () => Int) value: number,
+    @Ctx() { req }: MyContext
+  ) {
+    const { userId } = req.session;
+    const realValue = value !== -1 ? 1 : -1;
+    await Updoot.insert({
+      postId,
+      userId,
+      value: realValue,
+    });
+    const prevPost = await Post.findOne(postId);
+    await Post.update({ id: postId }, { points: prevPost!.points + realValue });
+    return true;
+  }
+
   @FieldResolver(() => String)
   textSnippet(@Root() root: Post) {
     return root.text.slice(0, 100).concat("...");
