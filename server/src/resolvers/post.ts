@@ -15,7 +15,7 @@ import {
 } from "type-graphql";
 import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
-import { getConnection } from "typeorm";
+import { getConnection, getRepository } from "typeorm";
 import { Updoot } from "../entities/Updoot";
 
 @InputType()
@@ -47,13 +47,24 @@ export class PostResolver {
   ) {
     const { userId } = req.session;
     const realValue = value !== -1 ? 1 : -1;
-    await Updoot.insert({
-      postId,
-      userId,
-      value: realValue,
-    });
-    const prevPost = await Post.findOne(postId);
-    await Post.update({ id: postId }, { points: prevPost!.points + realValue });
+
+    const updoot = await Updoot.findOne({ where: { postId, userId } });
+    if (updoot && updoot.value !== realValue) {
+      Updoot.update({ userId: userId }, { value: realValue });
+      await Post.update({ id: postId }, { points: realValue });
+    } else if (!updoot) {
+      await Updoot.insert({
+        postId,
+        userId,
+        value: realValue,
+      });
+      const prevPost = await Post.findOne(postId);
+      await Post.update(
+        { id: postId },
+        { points: prevPost!.points + realValue }
+      );
+    }
+
     return true;
   }
 
