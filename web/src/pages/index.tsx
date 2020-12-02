@@ -13,6 +13,7 @@ import {
 import { Layout } from "../components/Layout";
 import NextLink from "next/link";
 import { ReactElement } from "react";
+import { UpdootSection } from "../components/UpdootSection";
 
 const Index = () => {
   const { data, loading, fetchMore } = usePostsQuery({
@@ -69,11 +70,14 @@ const Index = () => {
       ) : (
         <Stack spacing={8}>
           {data?.posts.posts.map(post => (
-            <Box key={post.id} p={5} shadow="md" borderWidth="1px">
-              <Heading fontSize="xl">{post.title}</Heading>
-              <Text>by {post.creator.username}</Text>
-              <Text mt={4}>{post.textSnippet}</Text>
-            </Box>
+            <Flex key={post.id} p={5} shadow="md" borderWidth="1px">
+              <UpdootSection post={post} />
+              <Box>
+                <Heading fontSize="xl">{post.title}</Heading>
+                <Text>by {post.creator.username}</Text>
+                <Text mt={4}>{post.textSnippet}</Text>
+              </Box>
+            </Flex>
           ))}
         </Stack>
       )}
