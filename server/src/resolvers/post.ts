@@ -38,7 +38,7 @@ class PaginatedPosts {
 
 @Resolver(Post)
 export class PostResolver {
-  @Mutation(() => Number)
+  @Mutation(() => Int)
   @UseMiddleware(isAuth)
   async vote(
     @Arg("postId") postId: string,
