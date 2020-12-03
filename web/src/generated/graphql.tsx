@@ -64,7 +64,7 @@ export type User = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  vote: Scalars['Boolean'];
+  vote: Scalars['Float'];
   createPost: Post;
   updatePost: Post;
   deletePost: Scalars['Boolean'];

@@ -15,7 +15,7 @@ import {
 } from "type-graphql";
 import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
-import { getConnection, getRepository } from "typeorm";
+import { getConnection } from "typeorm";
 import { Updoot } from "../entities/Updoot";
 
 @InputType()
@@ -38,34 +38,35 @@ class PaginatedPosts {
 
 @Resolver(Post)
 export class PostResolver {
-  @Mutation(() => Boolean)
+  @Mutation(() => Number)
   @UseMiddleware(isAuth)
   async vote(
     @Arg("postId") postId: string,
     @Arg("value", () => Int) value: number,
     @Ctx() { req }: MyContext
   ) {
+    let points;
     const { userId } = req.session;
     const realValue = value !== -1 ? 1 : -1;
 
     const updoot = await Updoot.findOne({ where: { postId, userId } });
+    const prevPost = await Post.findOne(postId);
     if (updoot && updoot.value !== realValue) {
-      Updoot.update({ userId: userId }, { value: realValue });
-      await Post.update({ id: postId }, { points: realValue });
+      Updoot.update({ userId: userId, postId: postId }, { value: realValue });
+      points = prevPost!.points + realValue * 2;
+      await Post.update({ id: postId }, { points });
     } else if (!updoot) {
       await Updoot.insert({
         postId,
         userId,
         value: realValue,
       });
-      const prevPost = await Post.findOne(postId);
-      await Post.update(
-        { id: postId },
-        { points: prevPost!.points + realValue }
-      );
+      points = prevPost!.points + realValue;
+      await Post.update({ id: postId }, { points });
+    } else if (updoot && updoot.value === realValue) {
+      return prevPost?.points;
     }
-
-    return true;
+    return points;
   }
 
   @FieldResolver(() => String)
