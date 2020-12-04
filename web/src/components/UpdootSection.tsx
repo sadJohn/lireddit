@@ -11,15 +11,21 @@ interface UpdootSectionProps {
 export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
   const [vote, { loading }] = useVoteMutation({
     update: (cache, { data }) => {
+      let newVoteStatus = post.voteStatus;
+      if ((data?.vote as number) !== post.points) {
+        newVoteStatus = (data?.vote as number) > post.points ? 1 : -1;
+      }
       cache.writeFragment({
         id: cache.identify({ __typename: "Post", id: post.id }),
         fragment: gql`
-          fragment Points on Post {
+          fragment _ on Post {
             points
+            voteStatus
           }
         `,
         data: {
           points: data?.vote,
+          voteStatus: newVoteStatus,
         },
       });
     },
@@ -28,6 +34,7 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
   return (
     <Flex direction="column" justifyContent="center" alignItems="center" mr={4}>
       <IconButton
+        colorScheme={post.voteStatus === 1 ? "green" : undefined}
         onClick={() => {
           setLoadingState("up");
           vote({ variables: { value: 1, postId: post.id } });
@@ -38,6 +45,7 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
       ></IconButton>
       {post.points}
       <IconButton
+        colorScheme={post.voteStatus === -1 ? "red" : undefined}
         onClick={() => {
           setLoadingState("down");
           vote({ variables: { value: -1, postId: post.id } });

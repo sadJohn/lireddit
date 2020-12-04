@@ -16,6 +16,7 @@ const CreatePost: React.FC<createPostProps> = ({}) => {
   const [createPost] = useCreatePostMutation({
     update: cache => {
       cache.evict({ fieldName: "posts" });
+      cache.gc();
     },
   });
   return (
