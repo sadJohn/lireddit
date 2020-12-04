@@ -14,14 +14,16 @@ interface NavBarProps {}
 export const NavBar: React.FC<NavBarProps> = ({}) => {
   const { data, loading } = useMeQuery({ ssr: !isServer() });
   const [logout, { loading: logoutLoading }] = useLogoutMutation({
-    update: cache => {
-      cache.writeQuery<MeQuery>({
+    update: async cache => {
+      await cache.writeQuery<MeQuery>({
         query: MeDocument,
         data: {
           __typename: "Query",
           me: null,
         },
       });
+      cache.evict({ fieldName: "posts" });
+      cache.gc();
     },
   });
 

@@ -14,14 +14,16 @@ interface loginProps {}
 const Login: React.FC<loginProps> = ({}) => {
   const router = useRouter();
   const [login] = useLoginMutation({
-    update: (cache, { data }) => {
-      cache.writeQuery<MeQuery>({
+    update: async (cache, { data }) => {
+      await cache.writeQuery<MeQuery>({
         query: MeDocument,
         data: {
           __typename: "Query",
           me: data?.login.user,
         },
       });
+      cache.evict({ fieldName: "posts" });
+      cache.gc();
     },
   });
   return (

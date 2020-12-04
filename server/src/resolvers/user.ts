@@ -139,6 +139,9 @@ export class UserResolver {
 
   @Query(() => User, { nullable: true })
   me(@Ctx() { req }: MyContext): Promise<User | undefined> {
+    if (!req.session.userId) {
+      return Promise.resolve(undefined);
+    }
     return User.findOne(req.session.userId);
   }
 

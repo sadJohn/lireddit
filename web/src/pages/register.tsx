@@ -14,14 +14,16 @@ interface registerProps {}
 const Register: React.FC<registerProps> = ({}) => {
   const router = useRouter();
   const [register] = useRegisterMutation({
-    update: (cache, { data }) => {
-      cache.writeQuery<MeQuery>({
+    update: async (cache, { data }) => {
+      await cache.writeQuery<MeQuery>({
         query: MeDocument,
         data: {
           __typename: "Query",
           me: data?.register.user,
         },
       });
+      cache.evict({ fieldName: "posts" });
+      cache.gc();
     },
   });
   return (
