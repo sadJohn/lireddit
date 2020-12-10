@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Link } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, Link } from "@chakra-ui/react";
 import React, { ReactElement } from "react";
 import NextLink from "next/link";
 import {
@@ -33,6 +33,11 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   } else if (!data?.me) {
     body = (
       <>
+        <NextLink href="/create-post">
+          <Link as={Button} ml="auto">
+            create post
+          </Link>
+        </NextLink>
         <NextLink href="/login">
           <Link mr={2}>Login</Link>
         </NextLink>
@@ -43,7 +48,12 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
     );
   } else {
     body = (
-      <Flex>
+      <Flex align="center">
+        <NextLink href="/create-post">
+          <Link as={Button} ml="auto" mr={4}>
+            create post
+          </Link>
+        </NextLink>
         <Box mr={2}>{data.me.username}</Box>
         <Button
           onClick={() => logout()}
@@ -57,7 +67,14 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
   }
   return (
     <Flex bg="tomato" p={4} position="sticky" top={0} zIndex={1}>
-      <Box ml="auto">{body}</Box>
+      <Flex maxW={800} flex={1} m="auto" align="center">
+        <NextLink href="/">
+          <Link>
+            <Heading>LiReddit</Heading>
+          </Link>
+        </NextLink>
+        <Box ml="auto">{body}</Box>
+      </Flex>
     </Flex>
   );
 };

@@ -58,12 +58,6 @@ const Index = () => {
   }
   return (
     <Layout variant="regular">
-      <Flex align="center">
-        <Heading>LiReddit</Heading>
-        <NextLink href="/create-post">
-          <Link ml="auto">create post</Link>
-        </NextLink>
-      </Flex>
       <br />
       {!data?.posts.posts && loading ? (
         <Box>loading</Box>
@@ -73,7 +67,12 @@ const Index = () => {
             <Flex key={post.id} p={5} shadow="md" borderWidth="1px">
               <UpdootSection post={post} />
               <Box>
-                <Heading fontSize="xl">{post.title}</Heading>
+                <NextLink href="post/[id]" as={`post/${post.id}`}>
+                  <Link>
+                    <Heading fontSize="xl">{post.title}</Heading>
+                  </Link>
+                </NextLink>
+
                 <Text>by {post.creator.username}</Text>
                 <Text mt={4}>{post.textSnippet}</Text>
               </Box>
